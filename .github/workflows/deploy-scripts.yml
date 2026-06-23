@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "scripts/**"
+    # only deploys on merge to main — PRs from dev do not upload to S3
 
 permissions:
   id-token: write   # required for OIDC token exchange with AWS STS
