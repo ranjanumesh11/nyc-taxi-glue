@@ -5,6 +5,14 @@ on:
     branches: [main, dev]
     paths:
       - "scripts/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (dev or prod)"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, prod]
 
 permissions:
   id-token: write
@@ -25,7 +33,13 @@ jobs:
       - name: Resolve target bucket
         id: env
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          # workflow_dispatch lets user pick env explicitly; push infers from branch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ github.event.inputs.environment }}"
+          else
+            TARGET="${{ github.ref_name }}"
+          fi
+          if [ "$TARGET" = "main" ] || [ "$TARGET" = "prod" ]; then
             echo "bucket=${{ vars.GLUE_SCRIPTS_BUCKET_PROD }}" >> $GITHUB_OUTPUT
             echo "env=prod" >> $GITHUB_OUTPUT
           else
