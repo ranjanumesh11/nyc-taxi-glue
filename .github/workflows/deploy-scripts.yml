@@ -1,0 +1,38 @@
+name: Deploy Glue Scripts to S3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+
+permissions:
+  id-token: write   # required for OIDC token exchange with AWS STS
+  contents: read
+
+jobs:
+  deploy:
+    name: Upload Scripts to S3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-glue-script-deploy-role
+          aws-region: us-east-1
+        # No long-lived keys — GitHub exchanges its OIDC token for a short-lived
+        # AWS session scoped to github-glue-script-deploy-role.
+
+      - name: Sync scripts to S3
+        run: |
+          aws s3 sync scripts/ s3://${{ secrets.GLUE_SCRIPTS_BUCKET }}/scripts/ \
+            --delete \
+            --exclude "*.pyc" \
+            --exclude "__pycache__/*"
+
+      - name: List uploaded files
+        run: aws s3 ls s3://${{ secrets.GLUE_SCRIPTS_BUCKET }}/scripts/ --recursive
