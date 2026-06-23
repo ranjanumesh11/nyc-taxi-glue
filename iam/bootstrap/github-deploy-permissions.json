@@ -11,8 +11,8 @@
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::nyc-taxi-glue-scripts-REPLACE_ACCOUNT_ID",
-        "arn:aws:s3:::nyc-taxi-glue-scripts-REPLACE_ACCOUNT_ID/*"
+        "arn:aws:s3:::nyc-taxi-glue-scripts-721559935914",
+        "arn:aws:s3:::nyc-taxi-glue-scripts-721559935914/*"
       ]
     }
   ]
