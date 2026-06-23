@@ -24,7 +24,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-glue-script-deploy-role
-          aws-region: us-east-1
+          aws-region: ${{ vars.AWS_REGION }}
         # No long-lived keys — GitHub exchanges its OIDC token for a short-lived
         # AWS session scoped to github-glue-script-deploy-role.
 
