@@ -2,13 +2,12 @@ name: Deploy Glue Scripts to S3
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "scripts/**"
-    # only deploys on merge to main — PRs from dev do not upload to S3
 
 permissions:
-  id-token: write   # required for OIDC token exchange with AWS STS
+  id-token: write
   contents: read
 
 jobs:
@@ -20,20 +19,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Resolve bucket based on branch:
+      #   dev  → nyc-taxi-glue-scripts-721559935914-dev  (verify before merging to main)
+      #   main → nyc-taxi-glue-scripts-721559935914      (prod, no suffix)
+      - name: Resolve target bucket
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "bucket=${{ vars.GLUE_SCRIPTS_BUCKET_PROD }}" >> $GITHUB_OUTPUT
+            echo "env=prod" >> $GITHUB_OUTPUT
+          else
+            echo "bucket=${{ vars.GLUE_SCRIPTS_BUCKET_DEV }}" >> $GITHUB_OUTPUT
+            echo "env=dev" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-glue-script-deploy-role
           aws-region: ${{ vars.AWS_REGION }}
-        # No long-lived keys — GitHub exchanges its OIDC token for a short-lived
-        # AWS session scoped to github-glue-script-deploy-role.
 
-      - name: Sync scripts to S3
+      - name: Sync scripts to S3 (${{ steps.env.outputs.env }})
         run: |
-          aws s3 sync scripts/ s3://${{ secrets.GLUE_SCRIPTS_BUCKET }}/scripts/ \
+          aws s3 sync scripts/ s3://${{ steps.env.outputs.bucket }}/scripts/ \
             --delete \
             --exclude "*.pyc" \
             --exclude "__pycache__/*"
 
       - name: List uploaded files
-        run: aws s3 ls s3://${{ secrets.GLUE_SCRIPTS_BUCKET }}/scripts/ --recursive
+        run: aws s3 ls s3://${{ steps.env.outputs.bucket }}/scripts/ --recursive
